@@ -127,7 +127,7 @@ Series too short for ARIMA → Requires at least 10+ observations
 
 **Piyush Sharma**
 BCA Student | Data Science & AI Enthusiast
-
+live demo : https://piyush0s-salespulse-app-gqrl6b.streamlit.app/
 ---
 
 ## 📄 License
