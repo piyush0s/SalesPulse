@@ -1,1 +1,22 @@
-[]
+[
+  {
+    "session_id": "session_20260421_200845",
+    "timestamp": "2026-04-21 20:08:45",
+    "dataset_name": "final_sales_dataset.csv",
+    "total_rows": 7136,
+    "date_range": "2023-01-01 \u2192 2024-12-31",
+    "num_products": 10,
+    "num_areas": 5,
+    "total_revenue": 231540637.0,
+    "total_units": 734281,
+    "forecast_periods": 8,
+    "forecast_freq": "Weekly",
+    "forecast_avg": 3017.5,
+    "best_season": "Festive",
+    "top_area": "North",
+    "insights_count": 14,
+    "high_priority_count": 3,
+    "filter_used": "All Data",
+    "insights_text": "============================================================\n  SMART SALES RECOMMENDATIONS\n============================================================\n\n[1] \ud83c\udf38 Seasonality  |  High Priority\n    \ud83d\udccc Festive is peak season (season lasts 2 months)\n    Highest intensity: 81,412 units/month. Raw total: 162,823 units.\n    \u2705 Ramp stock 4\u20136 weeks before Festive. Prioritise Electronics & Fashion bundles for Festive.\n\n[2] \ud83c\udf0d Area  |  High Priority\n    \ud83d\udccc North is top zone\n    Contributes 26.1% of revenue.\n    \u2705 Increase delivery slots, warehouse space, and ad spend in North.\n\n[3] \ud83d\udcca Growth  |  High Priority\n    \ud83d\udccc -46.1% 3-month decline\n    Sales falling \u2014 needs attention.\n    \u2705 Audit top categories for stock-outs, pricing issues, or delivery failures.\n\n[4] \ud83d\udcc8 Forecasting  |  Medium Priority\n    \ud83d\udccc Slowdown expected\n    Forecast avg (3018) is 50.3% below recent (6074).\n    \u2705 Reduce inventory orders. Launch promotions to clear existing stock.\n\n[5] \ud83d\udcc8 Forecasting  |  Medium Priority\n    \ud83d\udccc High forecast volatility\n    CV = 21.0% \u2014 demand is unpredictable.\n    \u2705 Keep 20% safety stock buffer. Review supplier lead times.\n\n[6] \ud83c\udf38 Seasonality  |  Medium Priority\n    \ud83d\udccc Winter is slowest season\n    Lowest intensity: 42,845 units/month.\n    \u2705 Run clearance sales in Winter. Offer free shipping + combo deals.\n\n[7] \ud83c\udf0d Area  |  Medium Priority\n    \ud83d\udccc Gap: North vs Nan\n    25.0% revenue gap.\n    \u2705 Reduce delivery fees in Nan. Investigate stock availability.\n\n[8] \ud83c\udf0d Area  |  Medium Priority\n    \ud83d\udccc Low-performer clusters: Nan\n    KMeans flagged these zones across all metrics.\n    \u2705 Run zone-specific promotions. Lower delivery fees to stimulate demand.\n\n[9] \ud83d\udcb0 Pricing  |  Medium Priority\n    \ud83d\udccc Protein Powder is price-insensitive\n    Elasticity = -0.22. Demand holds despite price rises.\n    \u2705 Raise Protein Powder prices 5\u20138%. Revenue-max price: \u20b9491.0.\n\n[10] \ud83d\udcb0 Pricing  |  Medium Priority\n    \ud83d\udccc Peanut Butter is price-insensitive\n    Elasticity = -0.20. Demand holds despite price rises.\n    \u2705 Raise Peanut Butter prices 5\u20138%. Revenue-max price: \u20b9251.0.\n\n[11] \ud83d\udcb0 Pricing  |  Medium Priority\n    \ud83d\udccc Almonds is price-insensitive\n    Elasticity = -0.02. Demand holds despite price rises.\n    \u2705 Raise Almonds prices 5\u20138%. Revenue-max price: \u20b9792.0.\n\n[12] \ud83d\udcb0 Pricing  |  Medium Priority\n    \ud83d\udccc Chana Sattu is price-insensitive\n    Elasticity = -0.01. Demand holds despite price rises.\n    \u2705 Raise Chana Sattu prices 5\u20138%. Revenue-max price: \u20b9125.0.\n\n[13] \ud83d\udcb0 Pricing  |  Medium Priority\n    \ud83d\udccc Paneer is price-insensitive\n    Elasticity = -0.20. Demand holds despite price rises.\n    \u2705 Raise Paneer prices 5\u20138%. Revenue-max price: \u20b9381.0.\n\n[14] \ud83d\udcb0 Pricing  |  Medium Priority\n    \ud83d\udccc Curd is price-insensitive\n    Elasticity = -0.07. Demand holds despite price rises.\n    \u2705 Raise Curd prices 5\u20138%. Revenue-max price: \u20b943.0."
+  }
+]

@@ -462,13 +462,17 @@ with tab3:
         st.plotly_chart(product_price_distribution(df, drill_cat),
                         use_container_width=True)
 
-    # Single product stats
-# ✅ FIXED — direct column operations, always reliable
-_sub   = df[df["Product"] == drill_prod]
-_rev   = float(_sub["Revenue"].sum())
-_units = float(_sub["Sales_Quantity"].sum())
-_price = float(_sub["Price"].mean())
-_ord   = int(len(_sub))
+    # Single product stats — direct column ops (named agg on DF returns transposed DF, not Series)
+    _sub   = df[df["Product"] == drill_prod]
+    _rev   = float(_sub["Revenue"].sum())
+    _units = float(_sub["Sales_Quantity"].sum())
+    _price = float(_sub["Price"].mean())
+    _ord   = int(len(_sub))
+    sc1, sc2, sc3, sc4 = st.columns(4)
+    sc1.metric("Total Revenue", fmt_currency(_rev))
+    sc2.metric("Units Sold",    fmt_number(_units))
+    sc3.metric("Avg Price",     f"₹{_price:.2f}")
+    sc4.metric("Orders",        f"{_ord:,}")
 
 # ══════════════════════════ TAB 4 — SEASONALITY ═══════════════════════════════
 with tab4:
@@ -599,7 +603,9 @@ with tab7:
         if not history:
             st.info("No history yet. Analyses are saved automatically.")
         else:
-            for sess in history:
+            for idx, sess in enumerate(history):
+                # Use idx in key to guarantee uniqueness even if session_ids collide
+                _exp_key = f"hist_exp_{idx}_{sess['session_id']}"
                 with st.expander(
                     f"📁 {sess['timestamp']}  ·  {sess['dataset_name']}  ·  "
                     f"{sess['total_rows']:,} rows  ·  Filter: {sess['filter_used']}",
@@ -624,9 +630,12 @@ with tab7:
                         f'💡 {sess["insights_count"]} insights'
                         f'</div>', unsafe_allow_html=True)
 
-                    with st.expander("📄 Full recommendations from this session"):
+                    # Nested expanders not supported on Streamlit Cloud — use toggle instead
+                    show_recs = st.checkbox(
+                        "📄 Show recommendations", key=f"show_rec_{idx}_{sess['session_id']}")
+                    if show_recs:
                         st.text(sess["insights_text"])
 
-                    if st.button("🗑️ Delete", key=f"del_{sess['session_id']}"):
+                    if st.button("🗑️ Delete", key=f"del_btn_{idx}_{sess['session_id']}"):
                         delete_session(sess["session_id"])
                         st.rerun()
