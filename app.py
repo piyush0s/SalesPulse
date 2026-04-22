@@ -35,7 +35,7 @@ from utils.helpers            import summary_kpis, PRIORITY_COLORS, PRIORITY_EMO
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="SalesPulse",
+    page_title="SalePulse",
     page_icon=r"C:\Users\Piyush sharma\OneDrive\Documents\Desktop\SalesPulse\app_logo.png",
     layout="wide",
     initial_sidebar_state="expanded"
