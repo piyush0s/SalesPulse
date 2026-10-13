@@ -59,18 +59,32 @@ The system supports dynamic datasets, performs validation, and provides interact
 
 ## 📁 Dataset Requirements
 
-Minimum required columns:
+Only three fields are required for sales forecasting and core analysis:
 
-* `Date`
-* `Units_Sold`
-* `Price`
-* `Region` 
+* **Date** — for example `OrderDate`, `date`, `Sale_Date`, or `transaction_date`
+* **Quantity sold** — for example `Order Quantity`, `qty`, `units_sold`, or `amount`
+* **Sale price** — for example `Sale Price`, `price`, `Unit Price`, `selling_price`,
+  or `Price_INR`
 
-Optional columns:
+The app detects common column-name variants and does not require `Region`. If both
+`City` and `Region` are present, location analysis uses `City`; otherwise it uses
+the available region/location field.
 
-* `Product_ID`
-* `Product_Name`
-* `Revenue` 
+Optional columns enrich the analysis:
+
+* **Product and category:** `Product_Name`, `Category`, `Sub_Category`, `Brand`
+* **Customer reliability:** `Customer_Satisfaction`, `Rating`, `Reviews_Count`,
+  `Return_Rate_Percent`, `Delivery_Days`, `Repeat_Customer`
+* **Pricing and profitability:** `Discount_Percent`, `Final_Price_INR`,
+  `Competitor_Price_INR`, `Profit_Margin_Percent`
+* **Inventory and demand:** `Stock_Available`, `Demand_Level`, `Season`, `Weather`
+* **Marketing and shopping funnel:** `Website_Visits`, `Cart_Additions`,
+  `Conversion_Rate_Percent`, `Ad_Spend_INR`
+* **Customer context:** `Customer_Age`, `Customer_Gender`, `Payment_Method`,
+  `City`, `State`, `Region`
+
+Available customer fields are summarized on the dashboard to show customer
+satisfaction, reviews, returns, delivery experience, and repeat-customer share.
 
 
 

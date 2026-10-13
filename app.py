@@ -31,7 +31,9 @@ from modules.price_optimizer  import (compute_elasticity, optimal_price_range,
                                        plot_all_categories_elasticity)
 from modules.insights         import generate_insights, format_insights_text
 from modules.history_manager  import save_session, load_history, delete_session, clear_all
-from utils.helpers            import summary_kpis, PRIORITY_COLORS, PRIORITY_EMOJIS, fmt_currency, fmt_number
+from utils.helpers            import (summary_kpis, dataset_signal_metrics,
+                                       PRIORITY_COLORS, PRIORITY_EMOJIS,
+                                       fmt_currency, fmt_number)
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -161,7 +163,9 @@ def _show_validation_errors(errors: list):
         "💡 **Required columns (any of these names work):**\n"
         "- **Date**: `OrderDate`, `date`, `sale_date`, `transaction_date`\n"
         "- **Quantity**: `Order Quantity`, `qty`, `units_sold`, `amount`\n"
-        "- **Price**: `Sale Price`, `price`, `Unit Price`, `selling_price`"
+        "- **Price**: `Sale Price`, `price`, `Unit Price`, `selling_price`, `Price_INR`\n\n"
+        "Optional: product/category, City or Region, discounts, stock, profit margin, "
+        "customer satisfaction/rating, reviews, returns, delivery time and repeat-customer data."
     )
 
 
@@ -214,6 +218,23 @@ if st.session_state.df is None:
       </div>
     </div>""", unsafe_allow_html=True)
 
+    st.markdown("### What data improves your analysis?")
+    st.markdown(
+        "**Required for sales forecasts:** a transaction/order date, units/quantity sold, "
+        "and sale/unit price. Common headers such as `OrderDate`, `Sale_Date`, "
+        "`Order Quantity`, `Units_Sold`, `Sale Price`, and `Price_INR` are recognized.\n\n"
+        "**For customer reliability:** add `Customer_Satisfaction` or `Rating`, "
+        "`Reviews_Count`, `Return_Rate_Percent`, `Delivery_Days`, and `Repeat_Customer`. "
+        "These allow the dashboard to summarize satisfaction, feedback, returns, delivery "
+        "experience, and repeat-customer share.\n\n"
+        "**For richer business decisions:** product/category, `Discount_Percent`, "
+        "`Profit_Margin_Percent`, `Stock_Available`, `Demand_Level`, "
+        "`Competitor_Price_INR`, `Website_Visits`, `Cart_Additions`, "
+        "`Conversion_Rate_Percent`, and `Ad_Spend_INR` add pricing, inventory, and "
+        "marketing context. Location analysis uses **City** when both City and Region "
+        "are present; Region is used when City is unavailable."
+    )
+
     # Feature preview cards
     st.markdown("---")
     c1, c2, c3, c4, c5, c6 = st.columns(6)
@@ -257,6 +278,30 @@ for col, (label, value) in zip(kpi_cols, kpis.items()):
       <div class="kpi-label">{label}</div></div>""", unsafe_allow_html=True)
 st.markdown("<br>", unsafe_allow_html=True)
 
+customer_signals, business_signals = dataset_signal_metrics(df)
+st.markdown('<div class="section-title">🛡️ Customer reliability & business signals</div>',
+            unsafe_allow_html=True)
+if customer_signals:
+    signal_cols = st.columns(min(5, len(customer_signals)))
+    for col, (label, value) in zip(signal_cols, customer_signals.items()):
+        col.metric(label, value)
+else:
+    st.info(
+        "No customer reliability fields detected yet. Add satisfaction or ratings, "
+        "review counts, return rate, delivery days, or repeat-customer status to "
+        "measure customer experience and loyalty."
+    )
+if business_signals:
+    st.markdown("**Available commercial signals**")
+    signal_cols = st.columns(min(5, len(business_signals)))
+    for col, (label, value) in zip(signal_cols, business_signals.items()):
+        col.metric(label, value)
+else:
+    st.caption(
+        "Optional discount, margin, inventory, demand, competitor, and marketing "
+        "columns can unlock additional business summaries."
+    )
+
 # ── Dynamic sidebar filter options ───────────────────────────────────────────
 categories    = sorted(df["Category"].unique().tolist()) if "Category" in df.columns else []
 products      = sorted(df["Product"].unique().tolist())
@@ -283,7 +328,8 @@ def run_analyses(_df, _freq, _periods, _cat, _prod):
               get_weekly_series(_df, product=_prod, category=_cat))
     fr  = fit_and_forecast(series, periods=_periods, freq=_freq)
     sa  = season_analysis(_df)
-    aa  = area_analysis(_df)
+    area_label = _df["Area_Level"].iloc[0] if "Area_Level" in _df.columns else "Area"
+    aa  = area_analysis(_df, area_label=area_label)
     em  = {c: compute_elasticity(_df, category=c)   for c in _df["Category"].unique()}
     om  = {c: optimal_price_range(_df, category=c)  for c in _df["Category"].unique()}
     ins = generate_insights(_df, fr, sa["summary"], aa["summary"], em, om)
@@ -322,7 +368,7 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
     "🛍️ Categories",
     "📦 Products",
     "🌸 Seasonality",
-    "🌍 Areas & Zones",
+    f"🌍 {df['Area_Level'].iloc[0] if 'Area_Level' in df.columns else 'Areas'} & Zones",
     "💰 Price Analysis",
     "🤖 AI Insights & History",
 ])
@@ -507,7 +553,8 @@ with tab4:
 
 # ══════════════════════════ TAB 5 — AREAS ════════════════════════════════════
 with tab5:
-    st.markdown('<div class="section-title">🌍 Zone / Area Performance</div>',
+    area_label = df["Area_Level"].iloc[0] if "Area_Level" in df.columns else "Area"
+    st.markdown(f'<div class="section-title">🌍 {area_label} Performance</div>',
                 unsafe_allow_html=True)
 
     ac1, ac2 = st.columns(2)
@@ -516,11 +563,12 @@ with tab5:
     with ac2:
         st.plotly_chart(aa["group_chart"], use_container_width=True)
 
-    st.markdown("**📊 Zone Summary Table**")
+    st.markdown(f"**📊 {area_label} Summary Table**")
     adf = aa["summary"].copy()
+    adf.rename(columns={"Area": area_label}, inplace=True)
     adf["Total_Revenue"] = adf["Total_Revenue"].apply(lambda x: fmt_currency(float(x)))
     st.dataframe(adf, use_container_width=True, hide_index=True)
-    st.info(f"🏅 Top zone: **{aa['top_area']}**")
+    st.info(f"🏅 Top {area_label.lower()}: **{aa['top_area']}**")
 
 # ══════════════════════════ TAB 6 — PRICE ═════════════════════════════════════
 with tab6:

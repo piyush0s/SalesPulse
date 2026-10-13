@@ -28,13 +28,44 @@ COLUMN_ALIASES = {
                        "sales_quantity", "sales quantity", "units_sold",
                        "units sold", "amount"],
     "Price":          ["sale price", "sale_price", "price", "selling_price",
-                       "unit_price", "unitprice", "revenue_per_unit"],
+                       "selling price", "unit price", "unit_price", "unitprice",
+                       "revenue_per_unit",
+                       "price_inr", "unit_price_inr", "selling_price_inr",
+                       "final_price_inr"],
     "Product":        ["product", "item", "product_name", "item_name",
                        "product name", "sku", "description"],
-    "Area":           ["zone", "area", "region", "location", "city",
+    "Area":           ["city", "zone", "area", "region", "location",
                        "state", "territory"],
     "Category":       ["product category", "product_category", "category",
-                       "subcategory", "department", "type"],
+                       "department", "type"],
+    "Sub_Category":   ["sub_category", "sub category", "sub-category"],
+    "Discount_Percent": ["discount_percent", "discount percent", "discount"],
+    "Demand_Level":   ["demand_level", "demand level"],
+    "Stock_Available": ["stock_available", "stock available", "inventory"],
+    "Rating":         ["rating", "product_rating", "product rating"],
+    "Reviews_Count":  ["reviews_count", "reviews count", "review_count"],
+    "Customer_Satisfaction": ["customer_satisfaction", "customer satisfaction",
+                              "satisfaction_score"],
+    "Customer_Age":   ["customer_age", "customer age"],
+    "Customer_Gender": ["customer_gender", "customer gender"],
+    "Payment_Method": ["payment_method", "payment method"],
+    "Delivery_Days":  ["delivery_days", "delivery days"],
+    "Return_Rate_Percent": ["return_rate_percent", "return rate percent",
+                            "return_rate"],
+    "Festival":       ["festival", "holiday"],
+    "Is_Weekend":    ["is_weekend", "is weekend", "weekend"],
+    "Competitor_Price": ["competitor_price_inr", "competitor price inr",
+                         "competitor_price"],
+    "Profit_Margin_Percent": ["profit_margin_percent", "profit margin percent",
+                              "profit_margin"],
+    "Temperature_C": ["temperature_c", "temperature c", "temperature"],
+    "Weather":       ["weather", "weather_condition"],
+    "Website_Visits": ["website_visits", "website visits"],
+    "Cart_Additions": ["cart_additions", "cart additions"],
+    "Conversion_Rate_Percent": ["conversion_rate_percent",
+                                "conversion rate percent", "conversion_rate"],
+    "Ad_Spend":      ["ad_spend_inr", "ad spend inr", "ad_spend"],
+    "Repeat_Customer": ["repeat_customer", "repeat customer"],
 }
 
 
@@ -67,7 +98,7 @@ def validate_dataframe(df: pd.DataFrame) -> tuple[bool, list]:
         if col not in col_map:
             errors.append(
                 f"❌ Required column '{col}' not found.\n"
-                f"   Expected one of: {COLUMN_ALIASES[col][:4]}\n"
+                f"   Expected one of: {COLUMN_ALIASES[col]}\n"
                 f"   Found columns: {list(df.columns)[:8]}"
             )
 
@@ -113,10 +144,19 @@ def load_and_clean(filepath: str) -> pd.DataFrame:
     else:
         df = pd.read_csv(filepath)
 
-    # Auto-detect and rename columns
+    # Auto-detect and rename columns. City is the preferred geographic grain;
+    # keep its source column and add the shared Area field used by analytics.
     col_map = _detect_columns(df)
-    rename = {v: k for k, v in col_map.items() if v != k}
+    area_source = col_map.get("Area")
+    rename = {v: k for k, v in col_map.items()
+              if k != "Area" and v != k}
     df.rename(columns=rename, inplace=True)
+    if area_source and area_source != "Area":
+        df["Area"] = df[area_source]
+    area_level = ("City" if area_source and area_source.strip().lower() == "city"
+                  else "Region" if area_source and area_source.strip().lower() == "region"
+                  else "Area")
+    df["Area_Level"] = area_level
 
     # Specific Flipkart renames that aren't covered by aliases
     explicit = {

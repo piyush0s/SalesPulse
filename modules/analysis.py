@@ -103,8 +103,8 @@ def season_analysis(df: pd.DataFrame) -> dict:
     }
 
 
-def area_analysis(df: pd.DataFrame) -> dict:
-    """Area performance with KMeans clustering."""
+def area_analysis(df: pd.DataFrame, area_label: str = "Area") -> dict:
+    """Location performance with KMeans clustering."""
     area_df = (df.groupby("Area")
                  .agg(Total_Sales=("Sales_Quantity","sum"),
                       Total_Revenue=("Revenue","sum"),
@@ -127,14 +127,14 @@ def area_analysis(df: pd.DataFrame) -> dict:
         x="Total_Revenue", y="Area", orientation="h",
         color="Cluster_Label",
         color_discrete_map={"🟢 High Performer":"#22c55e","🔴 Low Performer":"#ef4444"},
-        title="Area Revenue (KMeans Clustered)", text="Revenue_Share_%",
+        title=f"{area_label} Revenue (KMeans Clustered)", text="Revenue_Share_%",
         template="plotly_white"
     )
     bar_fig.update_traces(texttemplate="%{text}%", textposition="outside")
 
     zc = df.groupby(["Area","Category"])["Sales_Quantity"].sum().reset_index()
     group_fig = px.bar(zc, x="Area", y="Sales_Quantity", color="Category",
-                       barmode="group", title="Area × Category Breakdown",
+                       barmode="group", title=f"{area_label} × Category Breakdown",
                        template="plotly_white")
 
     return {"summary": area_df, "bar_chart": bar_fig, "group_chart": group_fig,
