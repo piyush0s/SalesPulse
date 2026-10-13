@@ -31,9 +31,9 @@ from modules.price_optimizer  import (compute_elasticity, optimal_price_range,
                                        plot_all_categories_elasticity)
 from modules.insights         import generate_insights, format_insights_text
 from modules.history_manager  import save_session, load_history, delete_session, clear_all
-from utils.helpers            import (summary_kpis, dataset_signal_metrics,
-                                       PRIORITY_COLORS, PRIORITY_EMOJIS,
-                                       fmt_currency, fmt_number)
+from salespulse_utils.helpers import (summary_kpis, dataset_signal_metrics,
+                                      PRIORITY_COLORS, PRIORITY_EMOJIS,
+                                      fmt_currency, fmt_number)
 
 # ── Page config ───────────────────────────────────────────────────────────────
 st.set_page_config(

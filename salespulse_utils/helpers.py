@@ -1,4 +1,4 @@
-"""Utils: helpers.py — shared formatting utilities."""
+"""Shared formatting utilities for SalesPulse."""
 
 import pandas as pd
 
