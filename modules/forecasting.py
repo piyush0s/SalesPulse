@@ -13,6 +13,17 @@ from statsmodels.tsa.stattools import adfuller
 warnings.filterwarnings("ignore")
 
 
+def periods_for_horizon(last_date: pd.Timestamp, months: int,
+                        freq: str = "W") -> int:
+    """Return the number of forecast steps that fit within a month horizon."""
+    if months < 1:
+        raise ValueError("Forecast horizon must be at least one month.")
+
+    horizon_end = pd.Timestamp(last_date) + pd.DateOffset(months=months)
+    future_dates = pd.date_range(start=last_date, end=horizon_end, freq=freq)[1:]
+    return len(future_dates)
+
+
 def is_stationary(series: pd.Series, significance: float = 0.05) -> bool:
     result  = adfuller(series.dropna())
     p_value = result[1]
@@ -78,15 +89,18 @@ def fit_and_forecast(series: pd.Series, periods: int = 8,
     }
 
 
-def plot_forecast(result: dict, title: str = "Sales Forecast") -> go.Figure:
+def plot_forecast(result: dict, title: str = "Sales Forecast",
+                  show_history: bool = True) -> go.Figure:
     hist, fc, ci = result["history"], result["forecast"], result["conf_int"]
-    freq_label   = "Week" if result.get("freq","W") == "W" else "Day"
+    freq_label = {"W": "Week", "D": "Day", "MS": "Month"}.get(
+        result.get("freq", "W"), "Period")
 
     fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=hist.index, y=hist.values, mode="lines",
-        name="Historical", line=dict(color="#3B82F6", width=1.8),
-    ))
+    if show_history:
+        fig.add_trace(go.Scatter(
+            x=hist.index, y=hist.values, mode="lines",
+            name="Historical", line=dict(color="#3B82F6", width=1.8),
+        ))
     fig.add_trace(go.Scatter(
         x=list(ci.index) + list(ci.index[::-1]),
         y=list(ci.iloc[:, 1]) + list(ci.iloc[:, 0][::-1]),

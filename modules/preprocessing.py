@@ -238,3 +238,11 @@ def get_daily_series(df: pd.DataFrame, product=None, category=None) -> pd.Series
     if category:  subset = subset[subset["Category"] == category]
     return (subset.groupby("Date")["Sales_Quantity"]
             .sum().asfreq("D").ffill())
+
+
+def get_monthly_series(df: pd.DataFrame, product=None, category=None) -> pd.Series:
+    subset = df.copy()
+    if product:   subset = subset[subset["Product"]  == product]
+    if category:  subset = subset[subset["Category"] == category]
+    return (subset.groupby(pd.Grouper(key="Date", freq="MS"))["Sales_Quantity"]
+            .sum().asfreq("MS").ffill())

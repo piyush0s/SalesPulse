@@ -17,8 +17,11 @@ from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(__file__))
 
-from modules.preprocessing    import load_and_clean, get_weekly_series, get_daily_series, validate_dataframe
-from modules.forecasting      import fit_and_forecast, plot_forecast
+from modules.preprocessing    import (load_and_clean, get_weekly_series,
+                                       get_daily_series, get_monthly_series,
+                                       validate_dataframe)
+from modules.forecasting      import (fit_and_forecast, plot_forecast,
+                                       periods_for_horizon)
 from modules.analysis         import season_analysis, area_analysis, monthly_trend
 from modules.product_analysis import (category_summary, category_revenue_chart,
                                        category_monthly_trend, category_avg_price_chart,
@@ -132,14 +135,18 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown("### 🔮 Forecast Settings")
-    freq_mode = st.radio("Frequency", ["Weekly", "Daily"])
-    max_periods = 104 if freq_mode == "Weekly" else 365
-    default_p   = 8   if freq_mode == "Weekly" else 14
-    forecast_periods = st.number_input(
-        f"Periods ({'weeks' if freq_mode=='Weekly' else 'days'})",
-        min_value=1, max_value=max_periods,
-        value=default_p, step=1
+    freq_mode = st.radio("Forecast granularity", ["Weekly", "Daily", "Monthly"])
+    horizon_label = st.selectbox(
+        "Forecast duration",
+        ["1 month", "3 months (Quarterly)",
+         "6 months (Half-yearly)", "12 months (1 year)"],
     )
+    horizon_months = {
+        "1 month": 1,
+        "3 months (Quarterly)": 3,
+        "6 months (Half-yearly)": 6,
+        "12 months (1 year)": 12,
+    }[horizon_label]
 
     st.markdown("---")
     st.markdown("### 🔍 Forecast Filter")
@@ -307,6 +314,7 @@ categories    = sorted(df["Category"].unique().tolist()) if "Category" in df.col
 products      = sorted(df["Product"].unique().tolist())
 selected_cat  = None
 selected_prod = None
+selected_area = None
 filter_label  = "All Data"
 
 if filter_by == "Category" and categories:
@@ -316,17 +324,36 @@ elif filter_by == "Product":
     selected_prod = st.sidebar.selectbox("Product", products)
     filter_label  = f"Product: {selected_prod}"
 
+area_level = df["Area_Level"].iloc[0] if "Area_Level" in df.columns else "Area"
+if area_level == "City" or df["Area"].nunique() > 1:
+    area_label = "City" if area_level == "City" else "Location"
+    area_options = sorted(df["Area"].dropna().unique().tolist())
+    selected_area = st.sidebar.selectbox(
+        f"Forecast {area_label.lower()}",
+        [None, *area_options],
+        format_func=lambda value: f"All {area_label}s" if value is None else value,
+    )
+    if selected_area is not None:
+        filter_label = f"{filter_label} · {area_label}: {selected_area}"
+
 # ─────────────────────────────────────────────────────────────────────────────
 # RUN ALL ANALYSES (cached)
 # ─────────────────────────────────────────────────────────────────────────────
-freq = "D" if freq_mode == "Daily" else "W"
+freq = {"Daily": "D", "Weekly": "W", "Monthly": "MS"}[freq_mode]
 
 @st.cache_data(show_spinner=False)
-def run_analyses(_df, _freq, _periods, _cat, _prod):
-    series = (get_daily_series(_df, product=_prod, category=_cat)
-              if _freq=="D" else
-              get_weekly_series(_df, product=_prod, category=_cat))
-    fr  = fit_and_forecast(series, periods=_periods, freq=_freq)
+def run_analyses(_df, _freq, _horizon_months, _cat, _prod, _area):
+    forecast_df = _df
+    if _area is not None:
+        forecast_df = forecast_df[forecast_df["Area"] == _area]
+    if _freq == "D":
+        series = get_daily_series(forecast_df, product=_prod, category=_cat)
+    elif _freq == "MS":
+        series = get_monthly_series(forecast_df, product=_prod, category=_cat)
+    else:
+        series = get_weekly_series(forecast_df, product=_prod, category=_cat)
+    periods = periods_for_horizon(series.index[-1], _horizon_months, _freq)
+    fr  = fit_and_forecast(series, periods=periods, freq=_freq)
     sa  = season_analysis(_df)
     area_label = _df["Area_Level"].iloc[0] if "Area_Level" in _df.columns else "Area"
     aa  = area_analysis(_df, area_label=area_label)
@@ -338,12 +365,13 @@ def run_analyses(_df, _freq, _periods, _cat, _prod):
 with st.spinner("🔄 Running analysis…"):
     try:
         fr, sa, aa, em, om, insights = run_analyses(
-            df, freq, int(forecast_periods), selected_cat, selected_prod)
+            df, freq, horizon_months, selected_cat, selected_prod, selected_area)
     except ValueError as ve:
         st.error(f"🚫 {ve}"); st.stop()
 
 # Auto-save session
-_sk = f"{dataset_name}|{freq}|{forecast_periods}|{filter_label}"
+forecast_periods = fr["periods"]
+_sk = f"{dataset_name}|{freq}|{horizon_months}|{filter_label}"
 if st.session_state.last_saved_key != _sk:
     save_session(
         dataset_name=dataset_name, total_rows=len(df),
@@ -375,21 +403,27 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
 
 # ══════════════════════════ TAB 1 — FORECAST ══════════════════════════════════
 with tab1:
-    freq_lbl = "Daily" if freq=="D" else "Weekly"
+    freq_lbl = freq_mode
     scope    = selected_cat or selected_prod or "All Data"
-    title    = f"{scope} — {forecast_periods}-{freq_lbl.rstrip('ly')} Forecast"
+    if selected_area is not None:
+        scope = f"{scope} · {area_label}: {selected_area}"
+    title    = f"{scope} — {horizon_label} {freq_lbl.lower()} forecast"
 
     st.markdown(f'<div class="section-title">🔮 ARIMA {freq_lbl} Forecast · {scope}</div>',
                 unsafe_allow_html=True)
-    st.plotly_chart(plot_forecast(fr, title=title), use_container_width=True)
+    st.plotly_chart(
+        plot_forecast(fr, title=title, show_history=False),
+        use_container_width=True,
+    )
 
     c1, c2 = st.columns(2)
     with c1:
         st.markdown("**📋 Forecast Values**")
         fdf = fr["forecast"].reset_index()
-        fdf.columns = [freq_lbl, "Forecast (units)"]
+        period_column = {"Daily": "Date", "Weekly": "Week", "Monthly": "Month"}[freq_mode]
+        fdf.columns = [period_column, "Forecast (units)"]
         fdf["Forecast (units)"] = fdf["Forecast (units)"].round(0).astype(int)
-        fdf[freq_lbl] = fdf[freq_lbl].dt.date
+        fdf[period_column] = fdf[period_column].dt.date
         st.dataframe(fdf, use_container_width=True, hide_index=True)
 
     with c2:
@@ -399,7 +433,8 @@ with tab1:
         st.code(
             f"ARIMA Order     : {fr['order']}\n"
             f"Frequency       : {freq_lbl}\n"
-            f"Periods ahead   : {forecast_periods}\n"
+            f"Forecast period : {horizon_label}\n"
+            f"Steps ahead     : {forecast_periods}\n"
             f"Training obs    : {len(fr['history'])}\n"
             f"AIC             : {fr.get('aic','N/A')}\n"
             f"Recent avg      : {h_avg:.0f} units\n"
@@ -662,7 +697,13 @@ with tab7:
                     hm1, hm2, hm3 = st.columns(3)
                     hm1.metric("Revenue",      fmt_currency(sess["total_revenue"]))
                     hm2.metric("Units Sold",   fmt_number(sess["total_units"]))
-                    hm3.metric("Forecast Avg", f"{sess['forecast_avg']:.0f}/{'wk' if sess['forecast_freq']=='Weekly' else 'day'}")
+                    forecast_unit = {
+                        "Weekly": "wk", "Daily": "day", "Monthly": "mo"
+                    }.get(sess["forecast_freq"], "period")
+                    hm3.metric(
+                        "Forecast Avg",
+                        f"{sess['forecast_avg']:.0f}/{forecast_unit}",
+                    )
 
                     hm4, hm5, hm6 = st.columns(3)
                     hm4.metric("Best Season", sess["best_season"])
