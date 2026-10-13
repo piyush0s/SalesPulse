@@ -19,6 +19,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from modules.preprocessing    import (load_and_clean, get_weekly_series,
                                        get_daily_series, get_monthly_series,
+                                       extend_series_through,
                                        validate_dataframe)
 from modules.forecasting      import (fit_and_forecast, plot_forecast,
                                        periods_for_horizon)
@@ -304,6 +305,10 @@ st.markdown(
     f'<div class="section-title">🛡️ Customer reliability & business signals · '
     f'{horizon_label}</div>',
             unsafe_allow_html=True)
+st.caption(
+    f"Calculated from {len(df):,} rows dated "
+    f"{df['Date'].min().date()} through {df['Date'].max().date()}."
+)
 if customer_signals:
     signal_cols = st.columns(min(5, len(customer_signals)))
     for col, (label, value) in zip(signal_cols, customer_signals.items()):
@@ -359,7 +364,7 @@ freq = {"Daily": "D", "Weekly": "W", "Monthly": "MS"}[freq_mode]
 
 @st.cache_data(show_spinner=False)
 def run_analyses(source_df, analysis_df, freq, horizon_months,
-                 category, product, area):
+                 category, product, area, dataset_end):
     forecast_df = source_df
     if area is not None:
         forecast_df = forecast_df[forecast_df["Area"] == area]
@@ -372,7 +377,14 @@ def run_analyses(source_df, analysis_df, freq, horizon_months,
     else:
         series = get_weekly_series(
             forecast_df, product=product, category=category)
-    periods = periods_for_horizon(series.index[-1], horizon_months, freq)
+    series = extend_series_through(series, dataset_end, freq)
+    periods = periods_for_horizon(
+        series.index[-1], horizon_months, freq, horizon_from=dataset_end)
+    if periods < 1:
+        raise ValueError(
+            "The selected duration is too short to contain a forecast period "
+            "at this granularity."
+        )
     fr  = fit_and_forecast(series, periods=periods, freq=freq)
     sa  = season_analysis(analysis_df)
     area_label = (
@@ -396,7 +408,7 @@ with st.spinner("🔄 Running analysis…"):
     try:
         fr, sa, aa, em, om, insights = run_analyses(
             source_df, df, freq, horizon_months,
-            selected_cat, selected_prod, selected_area)
+            selected_cat, selected_prod, selected_area, analysis_end)
     except ValueError as ve:
         st.error(f"🚫 {ve}"); st.stop()
 
@@ -445,6 +457,11 @@ with tab1:
     st.plotly_chart(
         plot_forecast(fr, title=title, show_history=False),
         use_container_width=True,
+    )
+    st.caption(
+        f"Forecast dates: {fr['forecast'].index.min().date()} to "
+        f"{fr['forecast'].index.max().date()} "
+        f"({len(fr['forecast'])} {freq_lbl.lower()} forecast points)."
     )
 
     c1, c2 = st.columns(2)

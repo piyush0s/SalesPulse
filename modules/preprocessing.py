@@ -246,3 +246,26 @@ def get_monthly_series(df: pd.DataFrame, product=None, category=None) -> pd.Seri
     if category:  subset = subset[subset["Category"] == category]
     return (subset.groupby(pd.Grouper(key="Date", freq="MS"))["Sales_Quantity"]
             .sum().asfreq("MS").ffill())
+
+
+def extend_series_through(series: pd.Series, end_date: pd.Timestamp,
+                          freq: str) -> pd.Series:
+    """Extend a filtered location series to the dataset's shared last period."""
+    if series.empty:
+        raise ValueError("No sales observations are available for this forecast.")
+
+    end_date = pd.Timestamp(end_date)
+    if freq == "D":
+        end = end_date.normalize()
+        start = series.index[0].normalize()
+    elif freq == "W":
+        end = end_date.to_period("W").end_time.normalize()
+        start = series.index[0]
+    elif freq == "MS":
+        end = end_date.to_period("M").start_time
+        start = series.index[0].to_period("M").start_time
+    else:
+        raise ValueError(f"Unsupported forecast frequency: {freq}")
+
+    shared_index = pd.date_range(start=start, end=end, freq=freq)
+    return series.reindex(shared_index).fillna(0).rename(series.name)

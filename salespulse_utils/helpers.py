@@ -47,19 +47,19 @@ def dataset_signal_metrics(df: pd.DataFrame) -> tuple[dict, dict]:
         if column in df.columns:
             values = numeric_values(column)
             if not values.empty:
-                customer[label] = f"{values.mean():,.1f}{suffix}"
+                customer[label] = f"{values.mean():,.2f}{suffix}"
 
     if "Repeat_Customer" in df.columns:
         values = df["Repeat_Customer"].dropna()
         numeric = pd.to_numeric(values, errors="coerce")
         if numeric.notna().any():
             customer["Repeat customer share"] = (
-                f"{numeric.dropna().gt(0).mean() * 100:.1f}%")
+                f"{numeric.dropna().gt(0).mean() * 100:.2f}%")
         else:
             truthy = {"yes", "true", "1", "repeat", "returning"}
             normalized = values.astype(str).str.strip().str.lower()
             customer["Repeat customer share"] = (
-                f"{normalized.isin(truthy).mean() * 100:.1f}%")
+                f"{normalized.isin(truthy).mean() * 100:.2f}%")
 
     business = {}
     for column, label, suffix in [
@@ -77,9 +77,9 @@ def dataset_signal_metrics(df: pd.DataFrame) -> tuple[dict, dict]:
             if not values.empty:
                 value = values.mean()
                 if column in {"Ad_Spend", "Competitor_Price"}:
-                    business[label] = f"₹{value:,.1f}"
+                    business[label] = f"₹{value:,.2f}"
                 else:
-                    business[label] = f"{value:,.1f}{suffix}"
+                    business[label] = f"{value:,.2f}{suffix}"
 
     if "Demand_Level" in df.columns:
         levels = df["Demand_Level"].dropna().astype(str).str.strip()

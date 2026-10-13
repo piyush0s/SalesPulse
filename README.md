@@ -17,6 +17,8 @@ The system supports dynamic datasets, performs validation, and provides interact
 * Forecast horizon can be set to **1, 3 (quarterly), 6 (half-yearly), or 12 months**
 * Forecast charts focus on the selected future horizon; historical data is used for model training
 * KPIs, revenue, customer/business signals, and analysis tabs recalculate over the selected trailing historical duration
+* City/location forecasts are aligned to the dataset's latest date, even when a selected location has older observations
+* Reliability metrics show their date window and contributing row count, with values displayed to two decimal places
 * Forecast an individual city/location or all locations together when location data is available
 
 ### 📊 Data Analysis

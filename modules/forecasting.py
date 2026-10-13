@@ -14,18 +14,37 @@ warnings.filterwarnings("ignore")
 
 
 def periods_for_horizon(last_date: pd.Timestamp, months: int,
-                        freq: str = "W") -> int:
-    """Return the number of forecast steps that fit within a month horizon."""
+                        freq: str = "W",
+                        horizon_from: pd.Timestamp | None = None) -> int:
+    """Return forecast steps through the selected calendar-month horizon."""
     if months < 1:
         raise ValueError("Forecast horizon must be at least one month.")
 
-    horizon_end = pd.Timestamp(last_date) + pd.DateOffset(months=months)
-    future_dates = pd.date_range(start=last_date, end=horizon_end, freq=freq)[1:]
-    return len(future_dates)
+    last_date = pd.Timestamp(last_date)
+    horizon_start = pd.Timestamp(horizon_from) if horizon_from is not None else last_date
+    horizon_end = horizon_start + pd.DateOffset(months=months)
+    if freq == "D":
+        return max(0, (horizon_end.normalize() - last_date.normalize()).days)
+    if freq == "W":
+        first_future_day = last_date.normalize() + pd.Timedelta(days=1)
+        return len(pd.date_range(
+            start=first_future_day, end=horizon_end.normalize(), freq="W"))
+    if freq == "MS":
+        last_month = last_date.to_period("M").start_time
+        final_month = horizon_end.to_period("M").start_time
+        return max(
+            0,
+            (final_month.year - last_month.year) * 12
+            + final_month.month - last_month.month,
+        )
+    raise ValueError(f"Unsupported forecast frequency: {freq}")
 
 
 def is_stationary(series: pd.Series, significance: float = 0.05) -> bool:
-    result  = adfuller(series.dropna())
+    values = series.dropna()
+    if len(values) < 4 or values.nunique() < 2:
+        return True
+    result  = adfuller(values)
     p_value = result[1]
     return p_value < significance
 
@@ -115,6 +134,17 @@ def plot_forecast(result: dict, title: str = "Sales Forecast",
         line=dict(color="#F97316", width=2.5, dash="dash"),
         marker=dict(size=6, symbol="diamond")
     ))
+    if not show_history and not fc.empty:
+        if len(fc) == 1:
+            if result.get("freq") == "MS":
+                point_end = fc.index[0] + pd.DateOffset(months=1)
+            elif result.get("freq") == "W":
+                point_end = fc.index[0] + pd.Timedelta(days=7)
+            else:
+                point_end = fc.index[0] + pd.Timedelta(days=1)
+            fig.update_xaxes(range=[fc.index[0], point_end])
+        else:
+            fig.update_xaxes(range=[fc.index[0], fc.index[-1]])
     fig.update_layout(
         title=title, xaxis_title=freq_label, yaxis_title="Sales Quantity",
         template="plotly_white", hovermode="x unified",
