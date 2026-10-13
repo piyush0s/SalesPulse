@@ -16,6 +16,7 @@ The system supports dynamic datasets, performs validation, and provides interact
 * Supports **daily, weekly, and monthly forecasting**
 * Forecast horizon can be set to **1, 3 (quarterly), 6 (half-yearly), or 12 months**
 * Forecast charts focus on the selected future horizon; historical data is used for model training
+* KPIs, revenue, customer/business signals, and analysis tabs recalculate over the selected trailing historical duration
 * Forecast an individual city/location or all locations together when location data is available
 
 ### 📊 Data Analysis
@@ -94,7 +95,7 @@ satisfaction, reviews, returns, delivery experience, and repeat-customer share.
 
 1. Upload your dataset (CSV/XLSX)
 2. Select forecasting granularity (Daily/Weekly/Monthly)
-3. Select a 1, 3, 6, or 12 month forecast horizon
+3. Select a 1, 3, 6, or 12 month analysis and forecast duration
 4. Optionally select a city/location for a location-specific forecast
 5. Explore:
 

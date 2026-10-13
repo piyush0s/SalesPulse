@@ -137,7 +137,7 @@ with st.sidebar:
     st.markdown("### 🔮 Forecast Settings")
     freq_mode = st.radio("Forecast granularity", ["Weekly", "Daily", "Monthly"])
     horizon_label = st.selectbox(
-        "Forecast duration",
+        "Analysis & forecast duration",
         ["1 month", "3 months (Quarterly)",
          "6 months (Half-yearly)", "12 months (1 year)"],
     )
@@ -147,6 +147,10 @@ with st.sidebar:
         "6 months (Half-yearly)": 6,
         "12 months (1 year)": 12,
     }[horizon_label]
+    st.caption(
+        "KPIs and analysis use this trailing historical window; forecasting "
+        "trains on all available history."
+    )
 
     st.markdown("---")
     st.markdown("### 🔍 Forecast Filter")
@@ -262,7 +266,13 @@ if st.session_state.df is None:
 # ─────────────────────────────────────────────────────────────────────────────
 # DATA IS LOADED — show everything below
 # ─────────────────────────────────────────────────────────────────────────────
-df           = st.session_state.df
+source_df = st.session_state.df
+analysis_end = source_df["Date"].max()
+analysis_start = analysis_end - pd.DateOffset(months=horizon_months)
+df = source_df.loc[source_df["Date"] >= analysis_start].copy()
+if df.empty:
+    st.error("No sales records fall within the selected analysis duration.")
+    st.stop()
 dataset_name = uploaded.name if uploaded else "Flipkart_Sales_Dataset.xlsx"
 
 # ── App header ────────────────────────────────────────────────────────────────
@@ -271,8 +281,8 @@ st.markdown(f"""
   <h1 style="margin:0;font-size:1.65rem;">📊 Smart Sales Forecasting System</h1>
   <p style="margin:3px 0 0;opacity:.85;font-size:.85rem;">
     Dataset: <b>{dataset_name}</b> &nbsp;·&nbsp;
-    {len(df):,} rows &nbsp;·&nbsp;
-    {df['Date'].min().date()} → {df['Date'].max().date()}
+    Analysis window: <b>{df['Date'].min().date()} → {df['Date'].max().date()}</b>
+    &nbsp;·&nbsp; {len(df):,} rows &nbsp;·&nbsp; Forecast: {horizon_label}
   </p>
 </div>""", unsafe_allow_html=True)
 
@@ -342,30 +352,45 @@ if area_level == "City" or df["Area"].nunique() > 1:
 freq = {"Daily": "D", "Weekly": "W", "Monthly": "MS"}[freq_mode]
 
 @st.cache_data(show_spinner=False)
-def run_analyses(_df, _freq, _horizon_months, _cat, _prod, _area):
-    forecast_df = _df
-    if _area is not None:
-        forecast_df = forecast_df[forecast_df["Area"] == _area]
-    if _freq == "D":
-        series = get_daily_series(forecast_df, product=_prod, category=_cat)
-    elif _freq == "MS":
-        series = get_monthly_series(forecast_df, product=_prod, category=_cat)
+def run_analyses(source_df, analysis_df, freq, horizon_months,
+                 category, product, area):
+    forecast_df = source_df
+    if area is not None:
+        forecast_df = forecast_df[forecast_df["Area"] == area]
+    if freq == "D":
+        series = get_daily_series(
+            forecast_df, product=product, category=category)
+    elif freq == "MS":
+        series = get_monthly_series(
+            forecast_df, product=product, category=category)
     else:
-        series = get_weekly_series(forecast_df, product=_prod, category=_cat)
-    periods = periods_for_horizon(series.index[-1], _horizon_months, _freq)
-    fr  = fit_and_forecast(series, periods=periods, freq=_freq)
-    sa  = season_analysis(_df)
-    area_label = _df["Area_Level"].iloc[0] if "Area_Level" in _df.columns else "Area"
-    aa  = area_analysis(_df, area_label=area_label)
-    em  = {c: compute_elasticity(_df, category=c)   for c in _df["Category"].unique()}
-    om  = {c: optimal_price_range(_df, category=c)  for c in _df["Category"].unique()}
-    ins = generate_insights(_df, fr, sa["summary"], aa["summary"], em, om)
+        series = get_weekly_series(
+            forecast_df, product=product, category=category)
+    periods = periods_for_horizon(series.index[-1], horizon_months, freq)
+    fr  = fit_and_forecast(series, periods=periods, freq=freq)
+    sa  = season_analysis(analysis_df)
+    area_label = (
+        analysis_df["Area_Level"].iloc[0]
+        if "Area_Level" in analysis_df.columns else "Area"
+    )
+    aa  = area_analysis(analysis_df, area_label=area_label)
+    em = {
+        c: compute_elasticity(analysis_df, category=c)
+        for c in analysis_df["Category"].unique()
+    }
+    om = {
+        c: optimal_price_range(analysis_df, category=c)
+        for c in analysis_df["Category"].unique()
+    }
+    ins = generate_insights(
+        analysis_df, fr, sa["summary"], aa["summary"], em, om)
     return fr, sa, aa, em, om, ins
 
 with st.spinner("🔄 Running analysis…"):
     try:
         fr, sa, aa, em, om, insights = run_analyses(
-            df, freq, horizon_months, selected_cat, selected_prod, selected_area)
+            source_df, df, freq, horizon_months,
+            selected_cat, selected_prod, selected_area)
     except ValueError as ve:
         st.error(f"🚫 {ve}"); st.stop()
 
