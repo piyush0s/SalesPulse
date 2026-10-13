@@ -287,6 +287,10 @@ st.markdown(f"""
 </div>""", unsafe_allow_html=True)
 
 # ── KPI bar ───────────────────────────────────────────────────────────────────
+st.markdown(
+    f'<div class="section-title">📌 Summary for selected window · {horizon_label}</div>',
+    unsafe_allow_html=True,
+)
 kpis = summary_kpis(df)
 kpi_cols = st.columns(len(kpis))
 for col, (label, value) in zip(kpi_cols, kpis.items()):
@@ -296,7 +300,9 @@ for col, (label, value) in zip(kpi_cols, kpis.items()):
 st.markdown("<br>", unsafe_allow_html=True)
 
 customer_signals, business_signals = dataset_signal_metrics(df)
-st.markdown('<div class="section-title">🛡️ Customer reliability & business signals</div>',
+st.markdown(
+    f'<div class="section-title">🛡️ Customer reliability & business signals · '
+    f'{horizon_label}</div>',
             unsafe_allow_html=True)
 if customer_signals:
     signal_cols = st.columns(min(5, len(customer_signals)))
