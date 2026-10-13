@@ -60,8 +60,10 @@ def fit_and_forecast(series: pd.Series, periods: int = 8,
         p = 3 if len(series) > 100 else 2
         order = (p, d, 1)
 
+    freq_label = {"W": "weekly", "D": "daily", "MS": "monthly"}.get(
+        freq, "periodic")
     print(f"[Forecasting] ARIMA{order} on {len(series)} "
-          f"{'weekly' if freq=='W' else 'daily'} obs → {periods} periods ahead")
+          f"{freq_label} obs -> {periods} periods ahead")
 
     model  = ARIMA(series, order=order)
     fitted = model.fit()
