@@ -19,61 +19,6 @@ class Insight:
     action: str
 
 
-# ─── Forecast insights ────────────────────────────────────────────────────────
-def _forecast_insights(result: dict, freq: str = "W") -> List[Insight]:
-    insights = []
-    history  = result["history"]
-    forecast = result["forecast"]
-    periods  = result.get("periods", len(forecast))
-    unit     = "week" if freq == "W" else "day"
-
-    hist_avg = history[-min(8, len(history)):].mean()
-    fore_avg = forecast.mean()
-    fore_max = forecast.max()
-    fore_min = forecast.min()
-    growth   = (fore_avg - hist_avg) / (hist_avg + 1e-9)
-
-    peak_date = forecast.idxmax().strftime("%b %d, %Y")
-
-    if growth > 0.1:
-        insights.append(Insight("📈 Forecasting", "High",
-            f"Demand will surge +{growth*100:.1f}% over next {periods} {unit}s",
-            f"Forecast avg: {fore_avg:,.0f} units/{unit} vs recent avg {hist_avg:,.0f}. "
-            f"Peak of {fore_max:,.0f} units expected around {peak_date}.",
-            f"Increase procurement by {min(int(growth*100)+5, 40)}% immediately. "
-            f"Ensure top-selling products are stocked {periods//2 or 1} {unit}s ahead."))
-    elif growth > 0.02:
-        insights.append(Insight("📈 Forecasting", "Medium",
-            f"Moderate demand growth +{growth*100:.1f}% projected",
-            f"Forecast avg {fore_avg:,.0f} units/{unit} — modest improvement over recent {hist_avg:,.0f}.",
-            f"Incrementally increase stock by 8–12%. Monitor weekly and adjust."))
-    elif growth < -0.15:
-        insights.append(Insight("📈 Forecasting", "High",
-            f"Significant demand drop {growth*100:.1f}% expected",
-            f"Forecast avg {fore_avg:,.0f} units/{unit} vs recent {hist_avg:,.0f}. "
-            f"Minimum expected: {fore_min:,.0f} units/{unit}.",
-            f"Cut next procurement order by {min(int(abs(growth)*100)-5, 35)}%. "
-            f"Run promotions to clear existing inventory before the slowdown hits."))
-    elif growth < -0.03:
-        insights.append(Insight("📈 Forecasting", "Medium",
-            f"Mild demand slowdown {growth*100:.1f}%",
-            f"Forecast avg {fore_avg:,.0f} units/{unit} slightly below recent {hist_avg:,.0f}.",
-            "Hold current stock levels. Delay reorder triggers by 1 cycle."))
-    else:
-        insights.append(Insight("📈 Forecasting", "Low",
-            f"Demand stable at ~{fore_avg:,.0f} units/{unit}",
-            f"Forecast closely matches recent performance. Range: {fore_min:,.0f}–{fore_max:,.0f} units/{unit}.",
-            "Maintain current inventory strategy. Good window to renegotiate supplier contracts."))
-
-    cv = forecast.std() / (forecast.mean() + 1e-9)
-    if cv > 0.20:
-        insights.append(Insight("📈 Forecasting", "Medium",
-            f"High demand volatility detected (CV={cv*100:.0f}%)",
-            f"Forecast swings between {fore_min:,.0f} and {fore_max:,.0f} units/{unit} — very unpredictable.",
-            "Carry a 25% safety stock buffer. Set up fast-reorder triggers with your top 2 suppliers."))
-    return insights
-
-
 # ─── Season insights ──────────────────────────────────────────────────────────
 def _seasonal_insights(df: pd.DataFrame, seasonal_summary: pd.DataFrame) -> List[Insight]:
     metric = "Sales_Per_Month" if "Sales_Per_Month" in seasonal_summary.columns else "Total_Sales"
@@ -302,11 +247,9 @@ def _product_insights(df: pd.DataFrame) -> List[Insight]:
 
 
 # ─── Master generator ─────────────────────────────────────────────────────────
-def generate_insights(df, forecast_result, seasonal_summary,
-                      area_summary, elasticity_map, optimal_map) -> List[Insight]:
-    freq = forecast_result.get("freq", "W")
+def generate_insights(df, seasonal_summary, area_summary,
+                      elasticity_map, optimal_map) -> List[Insight]:
     all_ins  = []
-    all_ins += _forecast_insights(forecast_result, freq)
     all_ins += _seasonal_insights(df, seasonal_summary)
     all_ins += _area_insights(df, area_summary)
     all_ins += _pricing_insights(df, elasticity_map, optimal_map)

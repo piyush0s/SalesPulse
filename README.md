@@ -1,8 +1,8 @@
-# 📊 SalesPulse – AI Powered Smart Sales Forecasting System
+# 📊 SalesPulse – AI Powered Smart Sales Analytics System
 
 ## 🚀 Overview
 
-SalesPulse is an AI-powered sales forecasting and analytics application designed to help businesses make data-driven decisions. It analyzes historical sales data to generate insights, detect trends, and predict future demand using time series modeling techniques.
+SalesPulse is an AI-powered sales analytics application designed to help businesses make data-driven decisions. It analyzes selected historical sales data to generate insights and detect trends.
 
 The system supports dynamic datasets, performs validation, and provides interactive visualizations for better understanding of sales performance across products, regions, and time.
 
@@ -10,18 +10,11 @@ The system supports dynamic datasets, performs validation, and provides interact
 
 ## 🎯 Key Features
 
-### 📈 Forecasting
+### 📅 Date-Range Analysis
 
-* Time-series forecasting using ARIMA-based models
-* Supports **daily, weekly, and monthly forecasting**
-* Forecast horizon can be set to **1, 3 (quarterly), 6 (half-yearly), or 12 months**
-* Forecast charts focus on the selected future horizon; historical data is used for model training
 * Select an analysis start and end date within the uploaded dataset's available date range
-* KPIs, customer/business signals, and analysis tabs recalculate for the selected dates and active category, product, and location filters
-* Forecasting trains on all available history independently of the selected analysis date range
-* City/location forecasts are aligned to the dataset's latest date, even when a selected location has older observations
-* Reliability metrics show their date window and contributing row count, with values displayed to two decimal places
-* Forecast an individual city/location or all locations together when location data is available
+* KPIs, charts, insights, customer/business signals, and analysis history recalculate for the selected dates
+* Customer/business signals also respond to the selected category, product, and location filters
 
 ### 📊 Data Analysis
 
@@ -60,13 +53,13 @@ The system supports dynamic datasets, performs validation, and provides interact
 | Backend       | Python              |
 | Data Handling | Pandas, NumPy       |
 | Visualization | Matplotlib, Seaborn |
-| ML Model      | ARIMA (statsmodels) |
+| Machine Learning | scikit-learn (clustering, elasticity analysis) |
 
 ---
 
 ## 📁 Dataset Requirements
 
-Only three fields are required for sales forecasting and core analysis:
+Only three fields are required for sales analysis:
 
 * **Date** — for example `OrderDate`, `date`, `Sale_Date`, or `transaction_date`
 * **Quantity sold** — for example `Order Quantity`, `qty`, `units_sold`, or `amount`
@@ -99,15 +92,13 @@ satisfaction, reviews, returns, delivery experience, and repeat-customer share.
 
 1. Upload your dataset (CSV/XLSX)
 2. Select the analysis start and end dates from within the dataset's date range
-3. Select forecasting granularity (Daily/Weekly/Monthly) and a 1, 3, 6, or 12 month forecast horizon
-4. Optionally filter by category, product, or city/location
-5. Explore:
+3. Optionally filter by category, product, or city/location
+4. Explore:
 
-   * Forecast tab
    * Category analysis
    * Price insights
    * AI insights & history
-6. View predictions and insights
+5. Review date-range KPIs, graphs, and insights
 
 ---
 
@@ -116,14 +107,7 @@ satisfaction, reviews, returns, delivery experience, and repeat-customer share.
 The system handles common issues such as:
 
 * `KeyError` (missing columns)
-* Insufficient data for forecasting
 * Invalid dataset format
-
-Example:
-
-```
-Series too short for ARIMA → Requires at least 10+ observations
-```
 
 ---
 
@@ -131,7 +115,7 @@ Series too short for ARIMA → Requires at least 10+ observations
 
 * Help small businesses understand sales patterns
 * Enable smarter pricing and inventory decisions
-* Provide easy-to-use AI forecasting tools
+* Provide easy-to-use date-range analytics
 
 ---
 

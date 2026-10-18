@@ -1,7 +1,7 @@
 """
 Module: history_manager.py
 Purpose: Persist and retrieve analysis history sessions using a JSON store.
-Records: timestamp, dataset name, KPIs, forecast summary, insights, settings used.
+Records: timestamp, dataset name, KPIs, date range, insights, and analysis scope.
 """
 
 import json
@@ -39,9 +39,6 @@ def save_session(
     num_areas: int,
     total_revenue: float,
     total_units: int,
-    forecast_periods: int,
-    forecast_freq: str,
-    forecast_avg: float,
     best_season: str,
     top_area: str,
     insights_count: int,
@@ -66,9 +63,6 @@ def save_session(
         "num_areas":          num_areas,
         "total_revenue":      round(total_revenue, 2),
         "total_units":        total_units,
-        "forecast_periods":   forecast_periods,
-        "forecast_freq":      forecast_freq,
-        "forecast_avg":       round(forecast_avg, 1),
         "best_season":        best_season,
         "top_area":           top_area,
         "insights_count":     insights_count,
