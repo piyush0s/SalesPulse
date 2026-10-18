@@ -16,7 +16,9 @@ The system supports dynamic datasets, performs validation, and provides interact
 * Supports **daily, weekly, and monthly forecasting**
 * Forecast horizon can be set to **1, 3 (quarterly), 6 (half-yearly), or 12 months**
 * Forecast charts focus on the selected future horizon; historical data is used for model training
-* KPIs, revenue, customer/business signals, and analysis tabs recalculate over the selected trailing historical duration
+* Select an analysis start and end date within the uploaded dataset's available date range
+* KPIs, customer/business signals, and analysis tabs recalculate for the selected dates and active category, product, and location filters
+* Forecasting trains on all available history independently of the selected analysis date range
 * City/location forecasts are aligned to the dataset's latest date, even when a selected location has older observations
 * Reliability metrics show their date window and contributing row count, with values displayed to two decimal places
 * Forecast an individual city/location or all locations together when location data is available
@@ -96,16 +98,16 @@ satisfaction, reviews, returns, delivery experience, and repeat-customer share.
 ## 🧪 How to Use
 
 1. Upload your dataset (CSV/XLSX)
-2. Select forecasting granularity (Daily/Weekly/Monthly)
-3. Select a 1, 3, 6, or 12 month analysis and forecast duration
-4. Optionally select a city/location for a location-specific forecast
+2. Select the analysis start and end dates from within the dataset's date range
+3. Select forecasting granularity (Daily/Weekly/Monthly) and a 1, 3, 6, or 12 month forecast horizon
+4. Optionally filter by category, product, or city/location
 5. Explore:
 
    * Forecast tab
    * Category analysis
    * Price insights
    * AI insights & history
-5. View predictions and insights
+6. View predictions and insights
 
 ---
 

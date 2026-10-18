@@ -128,17 +128,12 @@ with st.sidebar:
         type=["csv","xlsx","xls"],
         help="Any sales file — columns auto-detected"
     )
-    use_sample = st.checkbox(
-        "Use built-in Flipkart dataset",
-        value=False,
-        help="133,503 orders · 5 categories · 4 zones · 2015-2020"
-    )
 
     st.markdown("---")
     st.markdown("### 🔮 Forecast Settings")
     freq_mode = st.radio("Forecast granularity", ["Weekly", "Daily", "Monthly"])
     horizon_label = st.selectbox(
-        "Analysis & forecast duration",
+        "Forecast horizon",
         ["1 month", "3 months (Quarterly)",
          "6 months (Half-yearly)", "12 months (1 year)"],
     )
@@ -149,8 +144,8 @@ with st.sidebar:
         "12 months (1 year)": 12,
     }[horizon_label]
     st.caption(
-        "KPIs and analysis use this trailing historical window; forecasting "
-        "trains on all available history."
+        "Forecasting trains on all available history. Choose the analysis date "
+        "range below to update KPIs, insights, and customer/business signals."
     )
 
     st.markdown("---")
@@ -203,15 +198,6 @@ if uploaded is not None:
             st.error(f"🚫 **Failed to read file:** {e}")
             st.stop()
 
-elif use_sample:
-    sample_key = "Flipkart_Sales_Dataset.xlsx_builtin"
-    if st.session_state.dataset_name != sample_key:
-        with st.spinner("Loading Flipkart dataset…"):
-            st.session_state.df           = load_and_clean("data/Flipkart_Sales_Dataset.xlsx")
-            st.session_state.dataset_name = sample_key
-            st.session_state.last_saved_key = None
-        st.toast("✅ Flipkart dataset loaded!", icon="✅")
-
 # ─────────────────────────────────────────────────────────────────────────────
 # LANDING SCREEN — shown until data is loaded
 # ─────────────────────────────────────────────────────────────────────────────
@@ -225,8 +211,7 @@ if st.session_state.df is None:
         <b>👈 Upload your dataset from the sidebar to begin</b><br><br>
         Accepts any <code>.csv</code> or <code>.xlsx</code> file with columns for
         <b>Date</b>, <b>Quantity</b> and <b>Price</b>.<br>
-        Column names are auto-detected — no reformatting needed.<br><br>
-        Or tick <b>"Use built-in Flipkart dataset"</b> to explore a live demo instantly.
+        Column names are auto-detected — no reformatting needed.
       </div>
     </div>""", unsafe_allow_html=True)
 
@@ -268,13 +253,34 @@ if st.session_state.df is None:
 # DATA IS LOADED — show everything below
 # ─────────────────────────────────────────────────────────────────────────────
 source_df = st.session_state.df
-analysis_end = source_df["Date"].max()
-analysis_start = analysis_end - pd.DateOffset(months=horizon_months)
-df = source_df.loc[source_df["Date"] >= analysis_start].copy()
-if df.empty:
-    st.error("No sales records fall within the selected analysis duration.")
+available_start = source_df["Date"].min().date()
+available_end = source_df["Date"].max().date()
+selected_dates = st.sidebar.date_input(
+    "Analysis date range",
+    value=(available_start, available_end),
+    min_value=available_start,
+    max_value=available_end,
+    key=f"analysis_dates_{st.session_state.dataset_name}",
+    help="Choose dates within the dataset's available date range.",
+)
+if not isinstance(selected_dates, tuple) or len(selected_dates) != 2:
+    st.info("Select both a start date and an end date to continue.")
     st.stop()
-dataset_name = uploaded.name if uploaded else "Flipkart_Sales_Dataset.xlsx"
+analysis_start, analysis_end = selected_dates
+if analysis_start > analysis_end:
+    st.error("The analysis start date must be on or before the end date.")
+    st.stop()
+
+df = source_df.loc[
+    source_df["Date"].dt.date.between(analysis_start, analysis_end)
+].copy()
+if df.empty:
+    st.error("No sales records fall within the selected analysis date range.")
+    st.stop()
+dataset_name = (
+    uploaded.name if uploaded is not None
+    else st.session_state.dataset_name.rsplit("_", 1)[0]
+)
 
 # ── App header ────────────────────────────────────────────────────────────────
 st.markdown(f"""
@@ -283,13 +289,13 @@ st.markdown(f"""
   <p style="margin:3px 0 0;opacity:.85;font-size:.85rem;">
     Dataset: <b>{dataset_name}</b> &nbsp;·&nbsp;
     Analysis window: <b>{df['Date'].min().date()} → {df['Date'].max().date()}</b>
-    &nbsp;·&nbsp; {len(df):,} rows &nbsp;·&nbsp; Forecast: {horizon_label}
+    &nbsp;·&nbsp; {len(df):,} rows &nbsp;·&nbsp; Forecast horizon: {horizon_label}
   </p>
 </div>""", unsafe_allow_html=True)
 
 # ── KPI bar ───────────────────────────────────────────────────────────────────
 st.markdown(
-    f'<div class="section-title">📌 Summary for selected window · {horizon_label}</div>',
+    f'<div class="section-title">📌 Summary for selected date range</div>',
     unsafe_allow_html=True,
 )
 kpis = summary_kpis(df)
@@ -299,36 +305,6 @@ for col, (label, value) in zip(kpi_cols, kpis.items()):
       <div class="kpi-value">{value}</div>
       <div class="kpi-label">{label}</div></div>""", unsafe_allow_html=True)
 st.markdown("<br>", unsafe_allow_html=True)
-
-customer_signals, business_signals = dataset_signal_metrics(df)
-st.markdown(
-    f'<div class="section-title">🛡️ Customer reliability & business signals · '
-    f'{horizon_label}</div>',
-            unsafe_allow_html=True)
-st.caption(
-    f"Calculated from {len(df):,} rows dated "
-    f"{df['Date'].min().date()} through {df['Date'].max().date()}."
-)
-if customer_signals:
-    signal_cols = st.columns(min(5, len(customer_signals)))
-    for col, (label, value) in zip(signal_cols, customer_signals.items()):
-        col.metric(label, value)
-else:
-    st.info(
-        "No customer reliability fields detected yet. Add satisfaction or ratings, "
-        "review counts, return rate, delivery days, or repeat-customer status to "
-        "measure customer experience and loyalty."
-    )
-if business_signals:
-    st.markdown("**Available commercial signals**")
-    signal_cols = st.columns(min(5, len(business_signals)))
-    for col, (label, value) in zip(signal_cols, business_signals.items()):
-        col.metric(label, value)
-else:
-    st.caption(
-        "Optional discount, margin, inventory, demand, competitor, and marketing "
-        "columns can unlock additional business summaries."
-    )
 
 # ── Dynamic sidebar filter options ───────────────────────────────────────────
 categories    = sorted(df["Category"].unique().tolist()) if "Category" in df.columns else []
@@ -356,6 +332,47 @@ if area_level == "City" or df["Area"].nunique() > 1:
     )
     if selected_area is not None:
         filter_label = f"{filter_label} · {area_label}: {selected_area}"
+
+signal_df = df
+if selected_cat is not None:
+    signal_df = signal_df[signal_df["Category"] == selected_cat]
+if selected_prod is not None:
+    signal_df = signal_df[signal_df["Product"] == selected_prod]
+if selected_area is not None:
+    signal_df = signal_df[signal_df["Area"] == selected_area]
+if signal_df.empty:
+    st.error("No records match the selected date range and filters.")
+    st.stop()
+
+customer_signals, business_signals = dataset_signal_metrics(signal_df)
+st.markdown(
+    '<div class="section-title">🛡️ Customer reliability & business signals</div>',
+    unsafe_allow_html=True)
+st.caption(
+    f"Calculated from {len(signal_df):,} matching rows dated "
+    f"{df['Date'].min().date()} through {df['Date'].max().date()}; "
+    f"active scope: {filter_label}."
+)
+if customer_signals:
+    signal_cols = st.columns(min(5, len(customer_signals)))
+    for col, (label, value) in zip(signal_cols, customer_signals.items()):
+        col.metric(label, value)
+else:
+    st.info(
+        "No customer reliability fields detected for this selection. Add satisfaction "
+        "or ratings, review counts, return rate, delivery days, or repeat-customer "
+        "status to measure customer experience and loyalty."
+    )
+if business_signals:
+    st.markdown("**Available commercial signals**")
+    signal_cols = st.columns(min(5, len(business_signals)))
+    for col, (label, value) in zip(signal_cols, business_signals.items()):
+        col.metric(label, value)
+else:
+    st.caption(
+        "Optional discount, margin, inventory, demand, competitor, and marketing "
+        "columns can unlock additional business summaries."
+    )
 
 # ─────────────────────────────────────────────────────────────────────────────
 # RUN ALL ANALYSES (cached)
@@ -408,13 +425,16 @@ with st.spinner("🔄 Running analysis…"):
     try:
         fr, sa, aa, em, om, insights = run_analyses(
             source_df, df, freq, horizon_months,
-            selected_cat, selected_prod, selected_area, analysis_end)
+            selected_cat, selected_prod, selected_area, source_df["Date"].max())
     except ValueError as ve:
         st.error(f"🚫 {ve}"); st.stop()
 
 # Auto-save session
 forecast_periods = fr["periods"]
-_sk = f"{dataset_name}|{freq}|{horizon_months}|{filter_label}"
+_sk = (
+    f"{dataset_name}|{freq}|{horizon_months}|{analysis_start}|"
+    f"{analysis_end}|{filter_label}"
+)
 if st.session_state.last_saved_key != _sk:
     save_session(
         dataset_name=dataset_name, total_rows=len(df),
